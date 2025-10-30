@@ -1,254 +1,67 @@
-[30-10-2025 18:15] Neha REC: const mongoose = require('mongoose');
-
-const tvShowSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: [true, 'Title is required'],
-    maxlength: [150, 'Title cannot exceed 150 characters'],
-  },
-  genre: {
-    type: String,
-    required: [true, 'Genre is required'],
-    enum: ['Drama', 'Comedy', 'Action', 'Thriller', 'Sci-Fi', 'Horror', 'Romance', 'Documentary', 'Fantasy', 'Mystery'],
-  },
-  status: {
-    type: String,
-    required: [true, 'Status is required'],
-    enum: ['Completed', 'Currently Watching', 'Plan to Watch', 'Dropped'],
-  },
-  totalEpisodes: {
-    type: Number,
-    required: [true, 'Total episodes required'],
-    min: [1, 'Total episodes must be positive'],
-  },
-  watchedEpisodes: {
-    type: Number,
-    required: [true, 'Watched episodes required'],
-    min: [0, 'Watched episodes cannot be negative'],
-    validate: {
-      validator: function (v) {
-        return v <= this.totalEpisodes;
-      },
-      message: 'Watched episodes cannot exceed total episodes',
-    },
-  },
-  rating: {
-    type: Number,
-    required: [true, 'Rating required'],
-    min: [0, 'Rating cannot be below 0'],
-    max: [10, 'Rating cannot exceed 10'],
-  },
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'User ID required'],
-  },
-});
-
-module.exports = mongoose.model('TVShow', tvShowSchema);
-[30-10-2025 18:15] Neha REC: 🧩 1. models/tvShowModel.js
-[30-10-2025 18:15] Neha REC: const mongoose = require('mongoose');
-
-const userSchema = new mongoose.Schema({
-  firstName: { type: String, required: [true, 'First name required'] },
-  lastName: { type: String, required: [true, 'Last name required'] },
-  mobileNumber: {
-    type: String,
-    required: [true, 'Mobile number required'],
-    validate: {
-      validator: function (v) {
-        return /^[0-9]{10}$/.test(v);
-      },
-      message: 'is not a valid mobile number',
-    },
-  },
-  email: {
-    type: String,
-    required: [true, 'Email required'],
-    validate: {
-      validator: function (v) {
-        return /^\S+@\S+\.\S+$/.test(v);
-      },
-      message: 'is not a valid email address',
-    },
-  },
-  role: { type: String, enum: ['user', 'admin'], required: [true, 'Role required'] },
-  password: {
-    type: String,
-    required: [true, 'Password required'],
-    minlength: [6, 'Password is shorter than the minimum allowed length'],
-    maxlength: [255, 'Password is longer than the maximum allowed length'],
-  },
-});
-
-module.exports = mongoose.model('User', userSchema);
-[30-10-2025 18:15] Neha REC: 🧩 2. models/userModel.js
-[30-10-2025 18:15] Neha REC: const TVShow = require('../models/tvShowModel');
-
-exports.getAllTVShows = async (req, res) => {
-  try {
-    const { sortOrder = 1 } = req.body;
-    const tvShows = await TVShow.find().sort({ title: sortOrder });
-    res.status(200).json(tvShows);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.getTVShowById = async (req, res) => {
-  try {
-    const tvShow = await TVShow.findById(req.params.id);
-    if (!tvShow) {
-      return res.status(404).json({ message: 'TV show not found' });
-    }
-    res.status(200).json(tvShow);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.getTVShowsByUserId = async (req, res) => {
-  try {
-    const { userId, status } = req.body;
-    const query = { userId };
-    if (status) query.status = status;
-    const tvShows = await TVShow.find(query);
-    res.status(200).json(tvShows);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.addTVShow = async (req, res) => {
-  try {
-    await TVShow.create(req.body);
-    res.status(200).json({ message: 'TV Show Added Successfully' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.updateTVShow = async (req, res) => {
-  try {
-    const updated = await TVShow.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updated) {
-      return res.status(404).json({ message: 'TV show not found' });
-    }
-    res.status(200).json({ message: 'TV Show Updated Successfully' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.deleteTVShow = async (req, res) => {
-  try {
-    const deleted = await TVShow.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ message: 'TV show not found' });
-    }
-    res.status(200).json({ message: 'TV Show Deleted Successfully' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-[30-10-2025 18:15] Neha REC: 🧩 3. controllers/tvShowController.js
-[30-10-2025 18:15] Neha REC: const User = require('../models/userModel');
-
-exports.getUserByUsernameAndPassword = async (req, res) => {
-  try {
-    const user = await User.findOne(req.body);
-    if (!user) {
-      return res.status(200).json({ message: 'Invalid Credentials' });
-    }
-    res.status(200).json(user);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.addUser = async (req, res) => {
-  try {
-    await User.create(req.body);
-    res.status(200).json({ message: 'Success' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find();
-    res.status(200).json({ users });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-[30-10-2025 18:15] Neha REC: 🧩 4. controllers/userController.js
-[30-10-2025 18:15] Neha REC: exports.validateToken = (req, res, next) => {
-  const token = req.header('Authorization');
-  if (!token || token !== 'validToken') {
-    return res.status(400).json({ message: 'Authentication failed' });
-  }
-  next();
-};
-[30-10-2025 18:15] Neha REC: 🧩 5. authUtils.js
-[30-10-2025 18:15] Neha REC: import React, { useState } from 'react';
+src/Components/Login.jsx
+import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
-const Login = () => {
-  const navigate = useNavigate();
+export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
 
-  const validate = () => {
-    const errs = {};
-    if (!email) errs.email = 'Email is required';
-    if (!password) errs.password = 'Password is required';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    const newErrors = {};
+
+    if (!email.trim()) newErrors.email = 'Email is required';
+    if (!password.trim()) newErrors.password = 'Password is required';
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
     try {
-      const res = await axios.post('/api/login', { email, password });
-      if (res.status === 200) navigate('/view');
+      await axios.post('/api/login', { email, password });
     } catch {
       setErrors({ general: 'Invalid credentials' });
     }
   };
 
   return (
-    <div>
+    <div className="container mt-5 text-center">
       <h2>Login</h2>
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>Email:</label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} />
-          {errors.email && <p>{errors.email}</p>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group mt-3">
+          <input
+            type="email"
+            placeholder="Email"
+            className="form-control"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {errors.email && <p className="text-danger">{errors.email}</p>}
         </div>
 
-        <div>
-          <label>Password:</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          {errors.password && <p>{errors.password}</p>}
+        <div className="form-group mt-3">
+          <input
+            type="password"
+            placeholder="Password"
+            className="form-control"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {errors.password && <p className="text-danger">{errors.password}</p>}
         </div>
 
-        <button type="submit">Login</button>
-        {errors.general && <p>{errors.general}</p>}
+        <button type="submit" className="btn btn-primary mt-3">Login</button>
+        {errors.general && <p className="text-danger">{errors.general}</p>}
       </form>
     </div>
   );
-};
+}
 
-export default Login;
-[30-10-2025 18:15] Neha REC: 🧩 src/Components/Login.jsx
-[30-10-2025 18:15] Neha REC: import React, { useState } from 'react';
+🟩 src/Components/Register.jsx
+import React, { useState } from 'react';
+import axios from 'axios';
 
-const Register = () => {
+export default function Register() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -257,90 +70,85 @@ const Register = () => {
     password: '',
     confirmPassword: ''
   });
-
   const [errors, setErrors] = useState({});
-
-  const validate = () => {
-    const errs = {};
-    if (!formData.firstName) errs.firstName = 'First Name is required';
-    if (!formData.lastName) errs.lastName = 'Last Name is required';
-    if (!formData.mobile) errs.mobile = 'Mobile Number is required';
-    if (!formData.email || !formData.email.includes('@'))
-      errs.email = 'Please enter a valid email address';
-    if (!formData.password || formData.password.length < 6)
-      errs.password = 'Password must be at least 6 characters';
-    if (!formData.confirmPassword)
-      errs.confirmPassword = 'Confirm Password is required';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    validate();
+    const newErrors = {};
+
+    if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
+    if (!formData.mobile.trim()) newErrors.mobile = 'Mobile Number is required';
+    if (!formData.email.match(/^[^@]+@[^@]+\.[^@]+$/))
+      newErrors.email = 'Please enter a valid email address';
+    if (formData.password.length < 6)
+      newErrors.password = 'Password must be at least 6 characters';
+    if (!formData.confirmPassword.trim())
+      newErrors.confirmPassword = 'Confirm Password is required';
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
+    axios.post('/api/register', formData);
   };
 
   return (
-    <div>
+    <div className="container mt-5 text-center">
       <h2>Register for SavorStudio</h2>
       <form onSubmit={handleSubmit}>
-        <label>First Name:</label>
-        <input value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
-        {errors.firstName && <p>{errors.firstName}</p>}
-
-        <label>Last Name:</label>
-        <input value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
-        {errors.lastName && <p>{errors.lastName}</p>}
-
-        <label>Mobile:</label>
-        <input value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} />
-        {errors.mobile && <p>{errors.mobile}</p>}
-
-        <label>Email:</label>
-        <input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-        {errors.email && <p>{errors.email}</p>}
-
-        <label>Password:</label>
-        <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
-        {errors.password && <p>{errors.password}</p>}
-
-        <label>Confirm Password:</label>
-        <input type="password" value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} />
-        {errors.confirmPassword && <p>{errors.confirmPassword}</p>}
-
-        <button type="submit">Register</button>
+        {['firstName', 'lastName', 'mobile', 'email', 'password', 'confirmPassword'].map((key) => (
+          <div key={key} className="form-group mt-3">
+            <input
+              type={key.includes('password') ? 'password' : 'text'}
+              placeholder={key.replace(/([A-Z])/g, ' $1')}
+              className="form-control"
+              value={formData[key]}
+              onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+            />
+            {errors[key] && <p className="text-danger">{errors[key]}</p>}
+          </div>
+        ))}
+        <button type="submit" className="btn btn-success mt-3">Register</button>
       </form>
     </div>
   );
-};
+}
 
-export default Register;
-[30-10-2025 18:15] Neha REC: 🧩 src/Components/Register.jsx
-[30-10-2025 18:15] Neha REC: import React from 'react';
+🟥 src/Components/ErrorPage.jsx
+import React from 'react';
 
-const ErrorPage = () => (
-  <div>
-    <h2>Something Went Wrong</h2>
-    <p>We're sorry, but an error occurred. Please try again later.</p>
-  </div>
-);
-
-export default ErrorPage;
-[30-10-2025 18:15] Neha REC: 🧩 src/Components/ErrorPage.jsx
-[30-10-2025 18:15] Neha REC: import React from 'react';
-
-const DisplayTVShows = () => {
+export default function ErrorPage() {
   return (
-    <div>
+    <div className="container text-center mt-5">
+      <h2>Something Went Wrong</h2>
+      <p>We're sorry, but an error occurred. Please try again later.</p>
+    </div>
+  );
+}
+
+🟨 src/Viewers/DisplayTVShows.jsx
+import React, { useState } from 'react';
+
+export default function DisplayTVShows() {
+  const [tvshows] = useState([]);
+  const [sort, setSort] = useState('Sort by Title (A-Z)');
+
+  return (
+    <div className="container mt-5">
       <h2>TV Show Catalog</h2>
+      <div className="d-flex justify-content-between my-3">
+        <button className="btn btn-danger">Logout</button>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="form-select w-auto"
+        >
+          <option>Sort by Title (A-Z)</option>
+          <option>Sort by Rating (High-Low)</option>
+        </select>
+      </div>
 
-      <button>Logout</button>
-      <select defaultValue="Sort by Title (A-Z)">
-        <option>Sort by Title (A-Z)</option>
-        <option>Sort by Rating (High-Low)</option>
-      </select>
-
-      <table>
+      <table className="table table-bordered">
         <thead>
           <tr>
             <th>Title</th>
@@ -351,34 +159,39 @@ const DisplayTVShows = () => {
             <th>Action</th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td colSpan="6">No TV shows found</td>
-          </tr>
-        </tbody>
       </table>
+
+      {tvshows.length === 0 && <p>No TV shows found</p>}
     </div>
   );
-};
+}
 
-export default DisplayTVShows;
-[30-10-2025 18:15] Neha REC: 🧩 src/Viewers/DisplayTVShows.jsx
-[30-10-2025 18:15] Neha REC: import React from 'react';
+🟦 src/Admin/ManageTVShow.jsx
+import React, { useState } from 'react';
 
-const ManageTVShow = () => {
+export default function ManageTVShow() {
+  const [status, setStatus] = useState('All Statuses');
+  const [tvshows] = useState([]);
+
   return (
-    <div>
+    <div className="container mt-5">
       <h2>Manage TV Shows</h2>
-      <button>Add TV Show</button>
-      <button>Logout</button>
+      <div className="d-flex justify-content-between my-3">
+        <button className="btn btn-primary">Add TV Show</button>
+        <button className="btn btn-danger">Logout</button>
+      </div>
 
-      <select defaultValue="All Statuses">
+      <select
+        value={status}
+        onChange={(e) => setStatus(e.target.value)}
+        className="form-select w-auto mb-3"
+      >
         <option>All Statuses</option>
         <option>Ongoing</option>
         <option>Completed</option>
       </select>
 
-      <table>
+      <table className="table table-bordered">
         <thead>
           <tr>
             <th>Title</th>
@@ -389,130 +202,106 @@ const ManageTVShow = () => {
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td colSpan="6">No TV shows found</td>
-          </tr>
-        </tbody>
       </table>
+
+      {tvshows.length === 0 && <p>No TV shows found</p>}
     </div>
   );
-};
+}
 
-export default ManageTVShow;
-[30-10-2025 18:15] Neha REC: 🧩 src/Admin/ManageTVShow.jsx
-[30-10-2025 18:15] Neha REC: import React, { useState } from 'react';
+🟧 src/Admin/CreateTVShow.jsx
+import React, { useState } from 'react';
 
-const CreateTVShow = () => {
+export default function CreateTVShow() {
   const [form, setForm] = useState({
     title: '',
     genre: '',
     status: '',
-    totalEpisodes: 0,
-    watchedEpisodes: 0,
+    totalEpisodes: '',
+    watchedEpisodes: '',
     rating: ''
   });
   const [errors, setErrors] = useState({});
 
-  const validate = () => {
-    const errs = {};
-    if (!form.title) errs.title = 'Title is required';
-    if (!form.genre) errs.genre = 'Genre is required';
-    if (form.totalEpisodes < 1) errs.total = 'Total episodes must be at least 1';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
-    validate();
+    const errs = {};
+    if (!form.title.trim()) errs.title = 'Title is required';
+    if (!form.genre.trim()) errs.genre = 'Genre is required';
+    if (!form.totalEpisodes || parseInt(form.totalEpisodes) < 1)
+      errs.totalEpisodes = 'Total episodes must be at least 1';
+    setErrors(errs);
+    if (Object.keys(errs).length === 0) {
+      console.log('Submitted:', form);
+    }
   };
 
   return (
-    <div>
+    <div className="container mt-5">
       <h2>Add TV Show</h2>
       <form onSubmit={handleSubmit}>
-        <label>Title:</label>
-        <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        {errors.title && <p>{errors.title}</p>}
+        <div className="form-group mt-3">
+          <label>Title:</label>
+          <input
+            className="form-control"
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+          {errors.title && <p className="text-danger">{errors.title}</p>}
+        </div>
 
-        <label>Genre:</label>
-        <input value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} />
-        {errors.genre && <p>{errors.genre}</p>}
+        <div className="form-group mt-3">
+          <label>Genre:</label>
+          <input
+            className="form-control"
+            value={form.genre}
+            onChange={(e) => setForm({ ...form, genre: e.target.value })}
+          />
+          {errors.genre && <p className="text-danger">{errors.genre}</p>}
+        </div>
 
-        <label>Status:</label>
-        <input value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} />
+        <div className="form-group mt-3">
+          <label>Status:</label>
+          <input
+            className="form-control"
+            value={form.status}
+            onChange={(e) => setForm({ ...form, status: e.target.value })}
+          />
+        </div>
 
-        <label>Total Episodes:</label>
-        <input
-          type="number"
-          value={form.totalEpisodes}
-          onChange={(e) => setForm({ ...form, totalEpisodes: Number(e.target.value) })}
-        />
-        {errors.total && <p>{errors.total}</p>}
+        <div className="form-group mt-3">
+          <label>Total Episodes:</label>
+          <input
+            type="number"
+            className="form-control"
+            value={form.totalEpisodes}
+            onChange={(e) => setForm({ ...form, totalEpisodes: e.target.value })}
+          />
+          {errors.totalEpisodes && <p className="text-danger">{errors.totalEpisodes}</p>}
+        </div>
 
-        <label>Watched Episodes:</label>
-        <input
-          type="number"
-          value={form.watchedEpisodes}
-          onChange={(e) => setForm({ ...form, watchedEpisodes: Number(e.target.value) })}
-        />
+        <div className="form-group mt-3">
+          <label>Watched Episodes:</label>
+          <input
+            type="number"
+            className="form-control"
+            value={form.watchedEpisodes}
+            onChange={(e) => setForm({ ...form, watchedEpisodes: e.target.value })}
+          />
+        </div>
 
-        <label>Rating (1-10, optional):</label>
-        <input
-          type="number"
-          value={form.rating}
-          onChange={(e) => setForm({ ...form, rating: e.target.value })}
-        />
+        <div className="form-group mt-3">
+          <label>Rating (1-10, optional):</label>
+          <input
+            type="number"
+            className="form-control"
+            value={form.rating}
+            onChange={(e) => setForm({ ...form, rating: e.target.value })}
+          />
+        </div>
 
-        <button type="submit">Add TV Show</button>
+        <button type="submit" className="btn btn-success mt-4">Add TV Show</button>
       </form>
     </div>
   );
-};
-
-export default CreateTVShow;
-[30-10-2025 18:15] Neha REC: 🧩 src/Admin/CreateTVShow.jsx
-[30-10-2025 18:15] Neha REC: import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-import Login from './Components/Login';
-import Register from './Components/Register';
-import ErrorPage from './Components/ErrorPage';
-import DisplayTVShows from './Viewers/DisplayTVShows';
-import ManageTVShow from './Admin/ManageTVShow';
-import CreateTVShow from './Admin/CreateTVShow';
-
-const App = () => {
-  return (
-    <Router>
-      <div>
-        <h1>SavorStudio</h1>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/view" element={<DisplayTVShows />} />
-          <Route path="/admin/manage" element={<ManageTVShow />} />
-          <Route path="/admin/create" element={<CreateTVShow />} />
-          <Route path="*" element={<ErrorPage />} />
-        </Routes>
-      </div>
-    </Router>
-  );
-};
-
-export default App;
-[30-10-2025 18:15] Neha REC: 🧩 src/App.js
-[30-10-2025 18:15] Neha REC: // Basic API configuration file used for testing and mock integration.
-const API_BASE_URL = 'http://localhost:5000/api';
-
-export const endpoints = {
-  LOGIN: ${API_BASE_URL}/login,
-  REGISTER: ${API_BASE_URL}/register,
-  TVSHOWS: ${API_BASE_URL}/tvshows,
-  ADMIN_CREATE: ${API_BASE_URL}/admin/create,
-  ADMIN_MANAGE: ${API_BASE_URL}/admin/manage,
-};
-
-export default API_BASE_URL;
-[30-10-2025 18:15] Neha REC: 🧩 src/apiconfig.js
+}
